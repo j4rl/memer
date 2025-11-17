@@ -3,6 +3,7 @@ $uploadsDir = __DIR__ . DIRECTORY_SEPARATOR . 'uploads';
 $settingsFile = __DIR__ . DIRECTORY_SEPARATOR . 'settings.json';
 $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 $currentInterval = 5;
+$currentExpireDays = 300;
 $messages = [];
 $errors = [];
 
@@ -12,23 +13,44 @@ if (!is_dir($uploadsDir)) {
 
 if (is_file($settingsFile)) {
     $savedSettings = json_decode((string) file_get_contents($settingsFile), true);
-    if (is_array($savedSettings) && isset($savedSettings['interval']) && is_numeric($savedSettings['interval'])) {
-        $currentInterval = max(1, (int) $savedSettings['interval']);
+    if (is_array($savedSettings)) {
+        if (isset($savedSettings['interval']) && is_numeric($savedSettings['interval'])) {
+            $currentInterval = max(1, (int) $savedSettings['interval']);
+        }
+
+        if (isset($savedSettings['expire_days']) && is_numeric($savedSettings['expire_days'])) {
+            $currentExpireDays = max(1, (int) $savedSettings['expire_days']);
+        }
     }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $settingsValid = true;
     $newInterval = filter_input(INPUT_POST, 'interval', FILTER_VALIDATE_INT);
+    $newExpireDays = filter_input(INPUT_POST, 'expire_days', FILTER_VALIDATE_INT);
+
     if ($newInterval === false || $newInterval === null) {
         $errors[] = 'Interval must be a number.';
-    } else {
-        $newInterval = max(1, min(3600, $newInterval));
-        $currentInterval = $newInterval;
-        $settingsPayload = json_encode(['interval' => $currentInterval], JSON_PRETTY_PRINT);
+        $settingsValid = false;
+    }
+
+    if ($newExpireDays === false || $newExpireDays === null) {
+        $errors[] = 'Expiration days must be a number.';
+        $settingsValid = false;
+    }
+
+    if ($settingsValid) {
+        $currentInterval = max(1, min(3600, (int) $newInterval));
+        $currentExpireDays = max(1, min(3650, (int) $newExpireDays));
+        $settingsPayload = json_encode([
+            'interval' => $currentInterval,
+            'expire_days' => $currentExpireDays,
+        ], JSON_PRETTY_PRINT);
+
         if ($settingsPayload !== false && file_put_contents($settingsFile, $settingsPayload) !== false) {
-            $messages[] = "Interval updated to {$currentInterval} seconds.";
+            $messages[] = "Settings updated. Interval: {$currentInterval}s, expires after {$currentExpireDays} days.";
         } else {
-            $errors[] = 'Unable to save interval settings.';
+            $errors[] = 'Unable to save settings.';
         }
     }
 
@@ -80,127 +102,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload Memes</title>
-    <style>
-        :root {
-            color-scheme: light dark;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #0b0c14, #1b1d2b);
-            color: #f5f5f7;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-        }
-
-        .panel {
-            width: min(600px, 100%);
-            background: rgba(12, 13, 20, 0.9);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 18px;
-            padding: 32px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
-        }
-
-        h1 {
-            margin-top: 0;
-            font-size: clamp(1.8rem, 4vw, 2.4rem);
-            margin-bottom: 12px;
-        }
-
-        p {
-            margin-top: 0;
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        form {
-            margin-top: 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-        }
-
-        label {
-            font-weight: 600;
-        }
-
-        input[type=\"file\"],
-        input[type=\"number\"] {
-            width: 100%;
-            padding: 12px 14px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(255, 255, 255, 0.05);
-            color: inherit;
-        }
-
-        input[type=\"number\"]::-webkit-inner-spin-button {
-            opacity: 1;
-        }
-
-        button {
-            padding: 12px 16px;
-            border-radius: 12px;
-            border: none;
-            font-weight: 600;
-            font-size: 1rem;
-            background: #ffd643;
-            color: #131313;
-            cursor: pointer;
-            transition: transform 120ms ease, box-shadow 120ms ease;
-        }
-
-        button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 10px 20px rgba(255, 214, 67, 0.35);
-        }
-
-        .messages {
-            margin-top: 16px;
-            display: grid;
-            gap: 8px;
-        }
-
-        .messages .alert {
-            padding: 12px 14px;
-            border-radius: 10px;
-            font-size: 0.95rem;
-        }
-
-        .alert.success {
-            background: rgba(72, 187, 120, 0.15);
-            border: 1px solid rgba(72, 187, 120, 0.4);
-            color: #a8f5cd;
-        }
-
-        .alert.error {
-            background: rgba(245, 101, 101, 0.18);
-            border: 1px solid rgba(245, 101, 101, 0.35);
-            color: #ffd4d4;
-        }
-
-        .links {
-            margin-top: 24px;
-            display: flex;
-            justify-content: flex-end;
-        }
-
-        .links a {
-            color: #ffd643;
-            text-decoration: none;
-            font-weight: 600;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="upload-page">
 <div class="panel">
     <h1>Upload a Meme</h1>
     <p>Drop images into the slideshow and control how fast they rotate.</p>
@@ -216,14 +120,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     <?php endif; ?>
 
-    <form method="post" enctype="multipart/form-data">
-        <div>
-            <label for="image">Image File</label>
-            <input type="file" id="image" name="image" accept=".jpg,.jpeg,.png,.gif,.webp">
+    <form method="post" enctype="multipart/form-data" class="upload-form">
+        <div class="input-field">
+            <span class="field-label">Image File</span>
+            <label for="image" class="file-drop" id="fileDropZone">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 5a3 3 0 0 1 3 3v1h1.75A2.25 2.25 0 0 1 19 11.25v6.5A2.25 2.25 0 0 1 16.75 20h-9.5A2.25 2.25 0 0 1 5 17.75v-6.5A2.25 2.25 0 0 1 7.25 9H9V8a3 3 0 0 1 3-3Zm0 1.5A1.5 1.5 0 0 0 10.5 8v1h3V8A1.5 1.5 0 0 0 12 6.5Z"/>
+                    <path d="M12 11.25a.75.75 0 0 1 .75.75v2.25H15a.75.75 0 0 1 0 1.5h-2.25V18a.75.75 0 0 1-1.5 0v-2.25H9a.75.75 0 0 1 0-1.5h2.25V12a.75.75 0 0 1 .75-.75Z"/>
+                </svg>
+                <span class="file-drop-text">Drag &amp; drop or click to browse</span>
+                <span class="file-name" id="fileName">No file selected</span>
+            </label>
+            <input class="sr-only" type="file" id="image" name="image" accept=".jpg,.jpeg,.png,.gif,.webp">
         </div>
-        <div>
-            <label for="interval">Slide Interval (seconds)</label>
+        <div class="input-field">
+            <label class="field-label" for="interval">Slide Interval (seconds)</label>
             <input type="number" id="interval" name="interval" min="1" max="3600" value="<?php echo (int) $currentInterval; ?>" required>
+        </div>
+        <div class="input-field">
+            <label class="field-label" for="expire_days">Days before auto-delete</label>
+            <input type="number" id="expire_days" name="expire_days" min="1" max="3650" value="<?php echo (int) $currentExpireDays; ?>" required>
         </div>
         <button type="submit">Save &amp; Upload</button>
     </form>
@@ -232,5 +148,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <a href="index.php">Back to Gallery</a>
     </div>
 </div>
+
+<script>
+    const imageInput = document.getElementById('image');
+    const fileNameLabel = document.getElementById('fileName');
+    const dropZone = document.getElementById('fileDropZone');
+
+    const updateFileName = files => {
+        if (!files || !files.length) {
+            fileNameLabel.textContent = 'No file selected';
+            return;
+        }
+
+        fileNameLabel.textContent = files.length === 1
+            ? files[0].name
+            : `${files.length} files selected`;
+    };
+
+    if (imageInput) {
+        imageInput.addEventListener('change', () => updateFileName(imageInput.files));
+    }
+
+    if (dropZone) {
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, event => {
+                event.preventDefault();
+                event.stopPropagation();
+                dropZone.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, event => {
+                event.preventDefault();
+                event.stopPropagation();
+                dropZone.classList.remove('dragover');
+            });
+        });
+
+        dropZone.addEventListener('drop', event => {
+            const { files } = event.dataTransfer || {};
+            if (!files || !files.length) {
+                return;
+            }
+
+            imageInput.files = files;
+            updateFileName(files);
+        });
+    }
+</script>
 </body>
 </html>
