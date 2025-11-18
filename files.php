@@ -42,6 +42,27 @@ $normalizeFileName = static function (string $input) use ($allowedExtensions): ?
     return $basename;
 };
 
+$deleteFileFromDisk = static function (string $file) use (&$imageLog, &$logChanged, $uploadsDir, &$errors): bool {
+    $targetPath = $uploadsDir . DIRECTORY_SEPARATOR . $file;
+
+    if (!is_file($targetPath)) {
+        $errors[] = sprintf('File "%s" could not be found on disk.', $file);
+        unset($imageLog[$file]);
+        $logChanged = true;
+        return false;
+    }
+
+    if (!@unlink($targetPath)) {
+        $errors[] = sprintf('Unable to delete "%s".', $file);
+        return false;
+    }
+
+    unset($imageLog[$file]);
+    $logChanged = true;
+
+    return true;
+};
+
 $formatBytes = static function (int $bytes): string {
     if ($bytes < 1024) {
         return $bytes . ' B';
@@ -60,24 +81,42 @@ $formatBytes = static function (int $bytes): string {
     return number_format($value, 1) . ' PB';
 };
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_file'])) {
-    $fileToDelete = $normalizeFileName((string) $_POST['delete_file']);
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['delete_file'])) {
+        $fileToDelete = $normalizeFileName((string) $_POST['delete_file']);
 
-    if ($fileToDelete === null) {
-        $errors[] = 'Invalid file selected for deletion.';
-    } else {
-        $targetPath = $uploadsDir . DIRECTORY_SEPARATOR . $fileToDelete;
-
-        if (!is_file($targetPath)) {
-            $errors[] = 'File could not be found on disk.';
-            unset($imageLog[$fileToDelete]);
-            $logChanged = true;
-        } elseif (!@unlink($targetPath)) {
-            $errors[] = 'Unable to delete the selected file.';
-        } else {
-            unset($imageLog[$fileToDelete]);
-            $logChanged = true;
+        if ($fileToDelete === null) {
+            $errors[] = 'Invalid file selected for deletion.';
+        } elseif ($deleteFileFromDisk($fileToDelete)) {
             $messages[] = sprintf('Deleted %s.', $fileToDelete);
+        }
+    } elseif (isset($_POST['delete_selected'])) {
+        $selectedFiles = $_POST['selected_files'] ?? [];
+        if (!is_array($selectedFiles) || !$selectedFiles) {
+            $errors[] = 'Select at least one file before deleting.';
+        } else {
+            $normalized = [];
+            foreach ($selectedFiles as $name) {
+                $normalizedName = $normalizeFileName((string) $name);
+                if ($normalizedName !== null) {
+                    $normalized[$normalizedName] = true;
+                }
+            }
+
+            if (!$normalized) {
+                $errors[] = 'No valid files were selected.';
+            } else {
+                $deletedCount = 0;
+                foreach (array_keys($normalized) as $fileName) {
+                    if ($deleteFileFromDisk($fileName)) {
+                        $deletedCount++;
+                    }
+                }
+
+                if ($deletedCount > 0) {
+                    $messages[] = sprintf('Deleted %d file%s.', $deletedCount, $deletedCount === 1 ? '' : 's');
+                }
+            }
         }
     }
 }
@@ -184,6 +223,10 @@ if ($logChanged) {
         <div class="file-grid">
             <?php foreach ($files as $file): ?>
                 <article class="file-card<?php echo $file['days_left'] <= 1 ? ' expiring' : ''; ?>">
+                    <label class="file-select">
+                        <input form="bulkDeleteForm" type="checkbox" name="selected_files[]" value="<?php echo htmlspecialchars($file['name'], ENT_QUOTES); ?>">
+                        <span class="checkbox"></span>
+                    </label>
                     <div class="file-preview">
                         <img src="<?php echo htmlspecialchars($file['url'], ENT_QUOTES); ?>" alt="<?php echo htmlspecialchars($file['name'], ENT_QUOTES); ?>">
                     </div>
@@ -203,6 +246,10 @@ if ($logChanged) {
                 </article>
             <?php endforeach; ?>
         </div>
+        <form method="post" id="bulkDeleteForm" class="bulk-actions">
+            <input type="hidden" name="delete_selected" value="1">
+            <button type="submit" id="bulkDeleteButton" class="danger-button" disabled>Delete selected</button>
+        </form>
     <?php else: ?>
         <div class="empty-files">
             <p>No uploaded files were found.</p>
@@ -215,5 +262,25 @@ if ($logChanged) {
         <a href="index.php">Open slideshow</a>
     </div>
 </div>
+<?php if ($files): ?>
+<script>
+    const bulkButton = document.getElementById('bulkDeleteButton');
+    const bulkCheckboxes = document.querySelectorAll('#bulkDeleteForm input[type="checkbox"], .file-select input[type="checkbox"]');
+
+    function updateBulkButton() {
+        if (!bulkButton) {
+            return;
+        }
+        const selectedCount = Array.from(bulkCheckboxes).filter(cb => cb.checked).length;
+        bulkButton.disabled = selectedCount === 0;
+        bulkButton.textContent = selectedCount
+            ? `Delete ${selectedCount} selected`
+            : 'Delete selected';
+    }
+
+    bulkCheckboxes.forEach(cb => cb.addEventListener('change', updateBulkButton));
+    updateBulkButton();
+</script>
+<?php endif; ?>
 </body>
 </html>
