@@ -60,6 +60,14 @@ body.upload-page {
     padding: clamp(24px, 6vw, 72px);
 }
 
+body.files-page {
+    background: radial-gradient(circle at 10% 10%, #1b1f3a, #070910 80%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(24px, 6vw, 72px);
+}
+
 .panel {
     width: min(640px, 100%);
     background: rgba(10, 12, 20, 0.92);
@@ -68,6 +76,10 @@ body.upload-page {
     padding: clamp(24px, 4vw, 40px);
     box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55);
     backdrop-filter: blur(10px);
+}
+
+.file-panel {
+    width: min(1080px, 100%);
 }
 
 .panel h1 {
@@ -198,6 +210,12 @@ button:hover {
     font-size: 0.95rem;
 }
 
+.panel-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
 .alert.success {
     background: rgba(72, 187, 120, 0.18);
     border: 1px solid rgba(72, 187, 120, 0.4);
@@ -214,6 +232,7 @@ button:hover {
     margin-top: 26px;
     display: flex;
     justify-content: flex-end;
+    gap: 18px;
 }
 
 .links a {
@@ -223,5 +242,111 @@ button:hover {
 }
 
 .links a:hover {
+    text-decoration: underline;
+}
+
+.file-grid {
+    margin-top: 28px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+}
+
+.file-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 380px;
+    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.file-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.45);
+}
+
+.file-card.expiring {
+    border-color: rgba(255, 86, 86, 0.6);
+    box-shadow: 0 0 0 1px rgba(255, 86, 86, 0.4);
+}
+
+.file-preview {
+    aspect-ratio: 4 / 3;
+    width: 100%;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.file-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.file-meta {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+}
+
+.file-name {
+    font-weight: 600;
+    font-size: 1rem;
+    word-break: break-all;
+}
+
+.file-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.92rem;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(255, 214, 67, 0.2);
+    color: #ffd643;
+    font-weight: 600;
+    font-size: 0.85rem;
+    width: max-content;
+}
+
+.file-actions {
+    padding: 0 18px 18px;
+}
+
+.danger-button {
+    width: 100%;
+    background: rgba(245, 101, 101, 0.9);
+    color: #fff;
+}
+
+.danger-button:hover {
+    box-shadow: 0 15px 30px rgba(245, 101, 101, 0.4);
+}
+
+.empty-files {
+    margin-top: 40px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.empty-files a {
+    color: #ffd643;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.empty-files a:hover {
     text-decoration: underline;
 }

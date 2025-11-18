@@ -145,6 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
 
     <div class="links">
+        <a href="files.php">Manage files</a>
         <a href="index.php">Back to Gallery</a>
     </div>
 </div>
