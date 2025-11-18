@@ -1,4 +1,4 @@
-# memer
+# Memer [mi:mer]
 
 Single-folder PHP app for unattended meme displays: drop files into `uploads/`, configure timing/retention, and a kiosk-friendly slideshow keeps itself refreshed.
 
