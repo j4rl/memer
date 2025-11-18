@@ -139,6 +139,10 @@ if ($logChanged) {
 
     function next() {
         const newIndex = (currentIndex + 1) % images.length;
+        if (newIndex === 0) {
+            window.location.reload();
+            return;
+        }
         render(newIndex);
     }
 
