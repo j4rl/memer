@@ -8,8 +8,8 @@ Single-folder PHP app for unattended meme displays: drop files into `uploads/`, 
 - `files.php` — management grid that shows every stored image with preview, file size, first-seen timestamp, remaining days before deletion, and buttons for single or bulk removal. It also keeps `image_log.json` in sync if files disappear.
 
 ## Settings & data files
-- `settings.json` — JSON document written by `upload.php` that stores `interval` (1–3600 seconds) and `expire_days` (1–3650 days). The viewer and management panel honor these values.
-- `image_log.json` — tracks when each filename was first seen so expiration is based on age, not modification time. Both the viewer and the file manager trim this log and delete expired entries/files.
+- `settings.json` — JSON document written by `upload.php` that stores `interval` (1–3600 seconds) and `expire_days` (1–3650 days). The viewer and management panel honor these values. File will be created if not present.
+- `image_log.json` — tracks when each filename was first seen so expiration is based on age, not modification time. Both the viewer and the file manager trim this log and delete expired entries/files. File will be created if not present.
 
 ## Getting Started
 1. Create an `uploads/` directory that is readable and writable by PHP.
@@ -17,3 +17,16 @@ Single-folder PHP app for unattended meme displays: drop files into `uploads/`, 
 3. Visit `upload.php` to add memes and adjust the interval/retention settings.
 4. Use `index.php` on the kiosk display; it keeps looping, purges expired files, and reloads itself so any new upload shows up on the next cycle.
 5. Optional: open `files.php` to review every asset, see when it expires, and delete unneeded items individually or in bulk.
+
+## Security Notes
+- This app does not implement any authentication or access control. It is intended for use in trusted environments only.
+- The upload mechanism performs basic validation on file extensions and MIME types, but further security hardening may be necessary depending on deployment context.
+- Always ensure your web server and PHP installation are kept up to date with the latest security patches.
+- Consider running this application in a sandboxed environment or behind a firewall to limit exposure.
+- Regularly monitor the `uploads/` directory and associated logs for any suspicious activity.
+- Have a strictly limited set of people with access to the upload and management interfaces.
+
+## From the Author
+This project was created by Charlie Jarl. Feel free to reach out via [GitHub](https://github.com/j4rl). 
+This project was created as a propaganda server for displaying memes in a kiosk setting.
+
