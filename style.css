@@ -181,6 +181,25 @@ input[type="number"]:focus {
     box-shadow: 0 0 0 3px rgba(255, 214, 67, 0.2);
 }
 
+.checkbox-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    font-weight: 600;
+}
+
+.checkbox-row input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: #ffd643;
+}
+
+.checkbox-row span {
+    color: rgba(255, 255, 255, 0.85);
+}
+
 button {
     padding: 14px 18px;
     border-radius: 14px;

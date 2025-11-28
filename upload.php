@@ -4,6 +4,7 @@ $settingsFile = __DIR__ . DIRECTORY_SEPARATOR . 'settings.json';
 $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 $currentInterval = 5;
 $currentExpireDays = 300;
+$currentRandomize = false;
 $messages = [];
 $errors = [];
 
@@ -21,6 +22,10 @@ if (is_file($settingsFile)) {
         if (isset($savedSettings['expire_days']) && is_numeric($savedSettings['expire_days'])) {
             $currentExpireDays = max(1, (int) $savedSettings['expire_days']);
         }
+
+        if (isset($savedSettings['randomize_order'])) {
+            $currentRandomize = (bool) $savedSettings['randomize_order'];
+        }
     }
 }
 
@@ -28,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $settingsValid = true;
     $newInterval = filter_input(INPUT_POST, 'interval', FILTER_VALIDATE_INT);
     $newExpireDays = filter_input(INPUT_POST, 'expire_days', FILTER_VALIDATE_INT);
+    $newRandomize = isset($_POST['randomize_order']);
 
     if ($newInterval === false || $newInterval === null) {
         $errors[] = 'Interval must be a number.';
@@ -42,13 +48,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($settingsValid) {
         $currentInterval = max(1, min(3600, (int) $newInterval));
         $currentExpireDays = max(1, min(3650, (int) $newExpireDays));
+        $currentRandomize = $newRandomize;
         $settingsPayload = json_encode([
             'interval' => $currentInterval,
             'expire_days' => $currentExpireDays,
+            'randomize_order' => $currentRandomize,
         ], JSON_PRETTY_PRINT);
 
         if ($settingsPayload !== false && file_put_contents($settingsFile, $settingsPayload) !== false) {
-            $messages[] = "Settings updated. Interval: {$currentInterval}s, expires after {$currentExpireDays} days.";
+            $messages[] = sprintf(
+                'Settings updated. Interval: %ds, expires after %d days. Randomize: %s.',
+                $currentInterval,
+                $currentExpireDays,
+                $currentRandomize ? 'on' : 'off'
+            );
         } else {
             $errors[] = 'Unable to save settings.';
         }
@@ -140,6 +153,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="input-field">
             <label class="field-label" for="expire_days">Days before auto-delete</label>
             <input type="number" id="expire_days" name="expire_days" min="1" max="3650" value="<?php echo (int) $currentExpireDays; ?>" required>
+        </div>
+        <div class="input-field">
+            <label class="field-label" for="randomize_order">Randomize image order</label>
+            <label class="checkbox-row">
+                <input type="checkbox" id="randomize_order" name="randomize_order" value="1"<?php echo $currentRandomize ? ' checked' : ''; ?>>
+                <span>Shuffle the slideshow each cycle</span>
+            </label>
         </div>
         <button type="submit">Save &amp; Upload</button>
     </form>

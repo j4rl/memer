@@ -22,6 +22,7 @@ if (is_dir($uploadsDir)) {
 $settingsFile = __DIR__ . DIRECTORY_SEPARATOR . 'settings.json';
 $intervalSeconds = 5;
 $expireDays = 300;
+$randomizeOrder = false;
 
 if (is_file($settingsFile)) {
     $settings = json_decode((string) file_get_contents($settingsFile), true);
@@ -32,6 +33,10 @@ if (is_file($settingsFile)) {
 
         if (isset($settings['expire_days']) && is_numeric($settings['expire_days'])) {
             $expireDays = max(1, (int) $settings['expire_days']);
+        }
+
+        if (isset($settings['randomize_order'])) {
+            $randomizeOrder = (bool) $settings['randomize_order'];
         }
     }
 }
@@ -82,9 +87,13 @@ foreach ($rawFiles as $file) {
 }
 
 if ($images) {
-    usort($images, static function ($a, $b) {
-        return strnatcasecmp($a['file'], $b['file']);
-    });
+    if ($randomizeOrder) {
+        shuffle($images);
+    } else {
+        usort($images, static function ($a, $b) {
+            return strnatcasecmp($a['file'], $b['file']);
+        });
+    }
 }
 
 $activeFilesLookup = array_fill_keys(array_column($images, 'file'), true);
